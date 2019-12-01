@@ -1,0 +1,28 @@
+cabal-version:       >=1.10
+
+name:                AdventOfCode2019
+version:             0.1.0.0
+synopsis:            My solutions for Advent of Code 2019
+description:         TODO: Make readme
+license:             BSD3
+license-file:        LICENSE
+author:              Jared Beller
+maintainer:          jbellerb@vt.edu
+build-type:          Simple
+
+library
+  ghc-options:       -Wall
+  build-depends:
+    base >=4.12 && <4.13
+  exposed-modules:
+    AOC19.Day1
+  hs-source-dirs:    src
+  default-language:  Haskell2010
+
+executable AdventOfCode2019
+  main-is:           Main.hs
+  build-depends:
+    base >=4.12 && <4.13,
+    AdventOfCode2019
+  hs-source-dirs:    app
+  default-language:  Haskell2010
