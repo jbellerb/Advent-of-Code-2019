@@ -1,9 +1,9 @@
 module Main where
 
-import AOC19.Day1 as D1
+import AoC19.Day2
 
 main :: IO ()
 main = do
-  contents <- readFile "input/day1.in"
-  print $ D1.part1 contents
-  print $ D1.part2 contents
+  contents <- readFile "input/day2.in"
+  print $ part1 contents
+  print $ part2 contents

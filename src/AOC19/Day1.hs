@@ -1,4 +1,4 @@
-module AOC19.Day1
+module AoC19.Day1
   ( part1,
     part2,
   )
