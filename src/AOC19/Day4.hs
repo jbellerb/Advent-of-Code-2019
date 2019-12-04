@@ -7,15 +7,19 @@ where
 import AoC19
 
 import qualified Data.Map as M
-import Text.Megaparsec
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer (decimal)
 
 pRange :: Parser [Int]
-pRange = sepBy decimal $ char '-'
+pRange = do
+  start <- decimal
+  _ <- char '-'
+  end <- decimal
+  return [start .. end]
 
 digitsIncrease :: Int -> Bool
-digitsIncrease num = checkList individual where individual = digits num
+digitsIncrease num = checkList individual
+  where individual = digits num
 
 digits :: Int -> [Int]
 digits 0 = []
@@ -36,14 +40,14 @@ hasRepeat = not . null . findRepeats
 part1 :: String -> Int
 part1 input = length
   [ x | x <- range
-    , digitsIncrease x
-    , hasRepeat x ]
+  , digitsIncrease x
+  , hasRepeat x ]
   where
-    given = parseInput pRange input
-    range = [head given .. given !! 1]
+    range = parseInput pRange input
 
 checkDouble :: [Int] -> Int -> Bool
-checkDouble list x = M.lookup x freq == Just 2 where freq = occurances list
+checkDouble list x = M.lookup x freq == Just 2
+  where freq = occurances list
 
 hasProperRepeat :: Int -> Bool
 hasProperRepeat num = not (null repeats) && or checkedRepeats
@@ -54,9 +58,8 @@ hasProperRepeat num = not (null repeats) && or checkedRepeats
 part2 :: String -> Int
 part2 input = length
   [ x | x <- range
-    , digitsIncrease x
-    , hasRepeat x
-    , hasProperRepeat x ]
+  , digitsIncrease x
+  , hasRepeat x
+  , hasProperRepeat x ]
   where
-    given = parseInput pRange input
-    range = [head given .. given !! 1]
+    range = parseInput pRange input
