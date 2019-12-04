@@ -19,6 +19,7 @@ library
     megaparsec,
     split
   exposed-modules:
+    AoC19,
     AoC19.Day1,
     AoC19.Day2,
     AoC19.Day3

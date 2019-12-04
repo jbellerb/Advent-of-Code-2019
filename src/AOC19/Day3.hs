@@ -4,25 +4,18 @@ module AoC19.Day3
   )
 where
 
+import AoC19
+
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer (decimal)
-import Text.Megaparsec.Error (errorBundlePretty)
-
-type Parser = Parsec Void String
 
 type MapState = (Map (Int, Int) Int, (Int, Int), Int)
 
 data Move = U Int | L Int | D Int | R Int
   deriving (Read, Show)
-
-parseInput :: Parser [Move] -> String -> [Move]
-parseInput parser input = case parse parser "" input of
-  Left e -> error $ errorBundlePretty e
-  Right a -> a
 
 pMoves :: Parser [Move]
 pMoves = sepBy pMove $ char ','
@@ -54,9 +47,6 @@ drawLine (wireMap, loc, time) move =
 
 buildMap :: [Move] -> Map (Int, Int) Int
 buildMap = fst3 . foldl drawLine (M.empty, (0, 0), 0)
-
-fst3 :: (a, b, c) -> a
-fst3 (x, _, _) = x
 
 part1 :: String -> Int
 part1 =
