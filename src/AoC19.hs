@@ -11,6 +11,9 @@ import Text.Megaparsec.Error (errorBundlePretty)
 
 type Parser = Parsec Void String
 
+getDayInput :: Int -> IO String
+getDayInput a = readFile $ "input/day" ++ show a ++ ".in"
+
 parseInput :: Parser a -> String -> a
 parseInput parser input = case parse parser "" input of
   Left e -> error $ errorBundlePretty e

@@ -1,8 +1,10 @@
-module AoC19.Day1
-  ( part1,
-    part2,
-  )
-where
+import AoC19
+
+main :: IO ()
+main = do
+  contents <- getDayInput 1
+  print $ part1 contents
+  print $ part2 contents
 
 parse :: String -> [Int]
 parse = map read . lines

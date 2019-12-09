@@ -1,8 +1,4 @@
-module AoC19.Day2
-  ( part1,
-    part2,
-  )
-where
+import AoC19
 
 import Control.Lens
 import Data.List
@@ -12,6 +8,12 @@ import Data.Maybe
 type Program = [Int]
 
 type Instruction = (Maybe Int, Maybe Int, Maybe Int, Maybe Int)
+
+main :: IO ()
+main = do
+  contents <- getDayInput 2
+  print $ part1 contents
+  print $ part2 contents
 
 parse :: String -> Program
 parse = map read . splitOn ","
@@ -30,7 +32,10 @@ setCell _ _ = const Nothing
 
 doInstruction :: Instruction -> Program -> Maybe Program
 doInstruction (opcode, Just a, Just b, Just c) x =
-  setCell c (action first second) x
+  setCell
+    c
+    (action first second)
+    x
   where
     first = x ^? element a
     second = x ^? element b

@@ -1,9 +1,3 @@
-module AoC19.Day3
-  ( part1,
-    part2,
-  )
-where
-
 import AoC19
 
 import Data.Map (Map)
@@ -17,6 +11,12 @@ type MapState = (Map (Int, Int) Int, (Int, Int), Int)
 data Move = U Int | L Int | D Int | R Int
   deriving (Read, Show)
 
+main :: IO ()
+main = do
+  contents <- getDayInput 3
+  print $ part1 contents
+  print $ part2 contents
+
 pMoves :: Parser [Move]
 pMoves = sepBy pMove $ char ','
   where
@@ -25,11 +25,8 @@ pMoves = sepBy pMove $ char ','
       d <$> decimal
 
 pDirection :: Parser (Int -> Move)
-pDirection = choice
-  [ U <$ char 'U'
-  , L <$ char 'L'
-  , D <$ char 'D'
-  , R <$ char 'R' ]
+pDirection =
+  choice [U <$ char 'U', L <$ char 'L', D <$ char 'D', R <$ char 'R']
 
 drawLine :: MapState -> Move -> MapState
 drawLine (wireMap, loc, time) move =

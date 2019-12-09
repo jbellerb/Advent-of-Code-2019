@@ -1,14 +1,14 @@
-module AoC19.Day4
-  ( part1,
-    part2,
-  )
-where
-
 import AoC19
 
 import qualified Data.Map as M
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer (decimal)
+
+main :: IO ()
+main = do
+  contents <- getDayInput 4
+  print $ part1 contents
+  print $ part2 contents
 
 pRange :: Parser [Int]
 pRange = do
@@ -18,8 +18,7 @@ pRange = do
   return [start .. end]
 
 digitsIncrease :: Int -> Bool
-digitsIncrease num = checkList individual
-  where individual = digits num
+digitsIncrease num = checkList individual where individual = digits num
 
 digits :: Int -> [Int]
 digits 0 = []
@@ -38,16 +37,12 @@ hasRepeat :: Int -> Bool
 hasRepeat = not . null . findRepeats
 
 part1 :: String -> Int
-part1 input = length
-  [ x | x <- range
-  , digitsIncrease x
-  , hasRepeat x ]
+part1 input = length [x | x <- range, digitsIncrease x, hasRepeat x]
   where
     range = parseInput pRange input
 
 checkDouble :: [Int] -> Int -> Bool
-checkDouble list x = M.lookup x freq == Just 2
-  where freq = occurances list
+checkDouble list x = M.lookup x freq == Just 2 where freq = occurances list
 
 hasProperRepeat :: Int -> Bool
 hasProperRepeat num = not (null repeats) && or checkedRepeats
@@ -56,10 +51,8 @@ hasProperRepeat num = not (null repeats) && or checkedRepeats
     checkedRepeats = map (checkDouble (digits num)) repeats
 
 part2 :: String -> Int
-part2 input = length
-  [ x | x <- range
-  , digitsIncrease x
-  , hasRepeat x
-  , hasProperRepeat x ]
+part2 input =
+  length
+    [x | x <- range, digitsIncrease x, hasRepeat x, hasProperRepeat x]
   where
     range = parseInput pRange input
