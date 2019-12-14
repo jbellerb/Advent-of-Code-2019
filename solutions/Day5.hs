@@ -12,16 +12,20 @@ import Text.Megaparsec.Char.Lexer
 main :: IO ()
 main = do
   contents <- getDayInput 5
-  part1 contents
-  part2 contents
+  putStr $ unlines $ map show $ part1 contents
+  putStr $ unlines $ map show $ part2 contents
 
 pIntcode :: Parser [Int]
 pIntcode = sepBy (signed space decimal) $ char ','
 
-part1 :: String -> IO ()
-part1 input = runIntcode (Just tape) (CPU 0)
+part1 :: String -> [Int]
+part1 input = runIntcode (Just tape) cpu
   where
     tape = S.fromList $ parseInput pIntcode input
+    cpu = makeCPU [1]
 
-part2 :: String -> IO ()
-part2 = part1
+part2 :: String -> [Int]
+part2 input = runIntcode (Just tape) cpu
+  where
+    tape = S.fromList $ parseInput pIntcode input
+    cpu = makeCPU [5]
