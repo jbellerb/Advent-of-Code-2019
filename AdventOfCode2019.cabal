@@ -90,3 +90,13 @@ executable day7
     megaparsec
   hs-source-dirs:    solutions
   default-language:  Haskell2010
+
+executable day8
+  main-is:           Day8.hs
+  build-depends:
+    base >=4.12 && <4.13,
+    AdventOfCode2019,
+    containers,
+    megaparsec
+  hs-source-dirs:    solutions
+  default-language:  Haskell2010

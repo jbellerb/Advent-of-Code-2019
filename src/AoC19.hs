@@ -36,3 +36,17 @@ occurances = foldl incrementSet M.empty
 window :: [a] -> [(a, a)]
 window (x : y : xs) = (x, y) : window (y : xs)
 window _ = []
+
+minimumBy :: (Foldable t, Ord b) => (a -> b) -> t a -> a
+minimumBy f = foldl1 cmp
+  where
+    cmp x y
+      | f x <= f y = x
+      | otherwise = y
+
+maximumBy :: (Foldable t, Ord b) => (a -> b) -> t a -> a
+maximumBy f = foldl1 cmp
+  where
+    cmp x y
+      | f x >= f y = x
+      | otherwise = y
