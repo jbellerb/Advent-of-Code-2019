@@ -2,119 +2,149 @@
 
 module AoC19.Intcode
   ( runIntcode,
-    makeCPU,
-    CPU (CPU),
-    Tape,
+    Program,
   )
 where
 
 import Control.Lens
+import Data.Map (Map)
+import qualified Data.Map as M
 import Data.Maybe
-import Data.Sequence (Seq)
-import qualified Data.Sequence as S
 
 data CPU
   = CPU
       { _pc :: Int,
-        _inputs :: Maybe [Int],
-        _outputs :: [Int]
+        _relBase :: Int,
+        _inputs :: Maybe [Integer],
+        _outputs :: [Integer]
       }
   deriving (Show)
 
 data Instruction
   = Halt
-  | Add [Param]
-  | Mul [Param]
-  | In [Param]
-  | Out [Param]
-  | JT [Param]
-  | JF [Param]
-  | CLT [Param]
-  | CEQ [Param]
+  | Add [Parameter]
+  | Mul [Parameter]
+  | In [Parameter]
+  | Out [Parameter]
+  | JT [Parameter]
+  | JF [Parameter]
+  | CLT [Parameter]
+  | CEQ [Parameter]
+  | REL [Parameter]
   deriving (Show)
 
-data Param
-  = Param
-      { getImmediate :: Bool,
-        getValue :: Int
+data ParameterMode
+  = Pos
+  | Imm
+  | Rel
+  deriving (Show)
+
+data Parameter
+  = Parameter
+      { mode :: ParameterMode,
+        value :: Integer
       }
   deriving (Show)
 
-type Tape = Seq Int
+type Tape = Map Int Integer
+
+type Program = [Integer]
 
 makeLenses ''CPU
-
-makeCPU :: [Int] -> CPU
-makeCPU a = CPU 0 (Just a) []
 
 advanceQueue :: Maybe [a] -> (a, Maybe [a])
 advanceQueue (Just [x]) = (x, Nothing)
 advanceQueue (Just (x : xs)) = (x, Just xs)
 advanceQueue _ = error "End of input stream."
 
-resolveParameter :: Tape -> Param -> Int
-resolveParameter tape (Param False loc) = fromMaybe 0 $ S.lookup loc tape
-resolveParameter _ (Param True val) = val
+resolveParameter :: Parameter -> Tape -> CPU -> Integer
+resolveParameter (Parameter Pos a) tape _ =
+  fromMaybe 0 $ M.lookup (fromInteger a) tape
+resolveParameter (Parameter Imm a) _ _ = a
+resolveParameter (Parameter Rel a) tape cpu =
+  fromMaybe 0 $ M.lookup (fromInteger a + (cpu ^. relBase)) tape
+
+resolveTarget :: Parameter -> CPU -> Int
+resolveTarget (Parameter Rel a) cpu = fromInteger a + (cpu ^. relBase)
+resolveTarget (Parameter _ a) _ = fromInteger a
 
 nextInstruction :: Tape -> CPU -> Instruction
 nextInstruction tape cpu = case opcode of
-  1 -> Add $ getParams 3
-  2 -> Mul $ getParams 3
-  3 -> In $ getParams 1
-  4 -> Out $ getParams 1
-  5 -> JT $ getParams 2
-  6 -> JF $ getParams 2
-  7 -> CLT $ getParams 3
-  8 -> CEQ $ getParams 3
+  1 -> Add $ getParameters 3
+  2 -> Mul $ getParameters 3
+  3 -> In $ getParameters 1
+  4 -> Out $ getParameters 1
+  5 -> JT $ getParameters 2
+  6 -> JF $ getParameters 2
+  7 -> CLT $ getParameters 3
+  8 -> CEQ $ getParameters 3
+  9 -> REL $ getParameters 1
   _ -> Halt
   where
     offset = cpu ^. pc
-    cell = fromMaybe 99 $ S.lookup offset tape
+    cell = fromMaybe 99 $ M.lookup offset tape
     opcode = cell `mod` 100
-    getParams n = take n params
-    params = map constructParams [1 ..]
-    constructParams n =
-      Param (decodeMode n == 1) $ fromMaybe 0 $ S.lookup (offset + n) tape
-    decodeMode n = cell `div` (10 ^ (n + 1)) `mod` 10
+    getParameters n = take n parameters
+    parameters = map constructParameters [1 ..]
+    constructParameters n =
+      Parameter (decodeMode n) $ fromMaybe 0 $ M.lookup (offset + n) tape
+    decodeMode n = case cell `div` (10 ^ (n + 1)) `mod` 10 of
+      0 -> Pos
+      1 -> Imm
+      2 -> Rel
+      _ -> error "Invalid parameter mode."
 
 doInstruction :: Tape -> Instruction -> CPU -> (Maybe Tape, CPU)
 doInstruction _ Halt cpu = (Nothing, cpu)
 doInstruction tape instruction cpu = case instruction of
   Add (a : b : [c]) ->
-    (Just $ S.update (getValue c) (resolve a + resolve b) tape, cpu & pc +~ 4)
+    ( Just $ M.insert (resolveWrite c) (resolve a + resolve b) tape,
+      cpu & pc +~ 4
+    )
   Mul (a : b : [c]) ->
-    (Just $ S.update (getValue c) (resolve a * resolve b) tape, cpu & pc +~ 4)
+    ( Just $ M.insert (resolveWrite c) (resolve a * resolve b) tape,
+      cpu & pc +~ 4
+    )
   In [a] ->
-    ( Just $ S.update (getValue a) input tape,
-      cpu & ((pc +~ 2) . (inputs .~ output))
+    ( Just $ M.insert (resolveWrite a) input tape,
+      cpu & ((pc +~ 2) . (inputs .~ remaining))
     )
     where
-      (input, output) = advanceQueue $ cpu ^. inputs
+      (input, remaining) = advanceQueue $ cpu ^. inputs
   Out [a] -> (Just tape, cpu & ((pc +~ 2) . (outputs %~ (++ [resolve a]))))
   JT (a : [b])
-    | resolve a /= 0 -> (Just tape, cpu & pc .~ resolve b)
+    | resolve a /= 0 -> (Just tape, cpu & pc .~ fromInteger (resolve b))
     | otherwise -> (Just tape, cpu & pc +~ 3)
   JF (a : [b])
-    | resolve a == 0 -> (Just tape, cpu & pc .~ resolve b)
+    | resolve a == 0 -> (Just tape, cpu & pc .~ fromInteger (resolve b))
     | otherwise -> (Just tape, cpu & pc +~ 3)
   CLT (a : b : [c])
     | resolve a < resolve b ->
-      (Just $ S.update (getValue c) 1 tape, cpu & pc +~ 4)
+      (Just $ M.insert (resolveWrite c) 1 tape, cpu & pc +~ 4)
     | otherwise ->
-      (Just $ S.update (getValue c) 0 tape, cpu & pc +~ 4)
+      (Just $ M.insert (resolveWrite c) 0 tape, cpu & pc +~ 4)
   CEQ (a : b : [c])
     | resolve a == resolve b ->
-      (Just $ S.update (getValue c) 1 tape, cpu & pc +~ 4)
+      (Just $ M.insert (resolveWrite c) 1 tape, cpu & pc +~ 4)
     | otherwise ->
-      (Just $ S.update (getValue c) 0 tape, cpu & pc +~ 4)
+      (Just $ M.insert (resolveWrite c) 0 tape, cpu & pc +~ 4)
+  REL [a] ->
+    (Just tape, cpu & ((pc +~ 2) . (relBase +~ fromInteger (resolve a))))
   _ -> error "This should never happen. (Invalid parsing of instruction.)"
   where
-    resolve = resolveParameter tape
+    resolve x = resolveParameter x tape cpu
+    resolveWrite x = resolveTarget x cpu
 
-runIntcode :: Maybe Tape -> CPU -> [Int]
-runIntcode Nothing cpu = cpu ^. outputs
-runIntcode (Just tape) cpu =
-  uncurry runIntcode $
+processState :: Maybe Tape -> CPU -> [Integer]
+processState Nothing cpu = cpu ^. outputs
+processState (Just tape) cpu =
+  uncurry processState $
     doInstruction tape instruction cpu
   where
     instruction = nextInstruction tape cpu
+
+runIntcode :: [Integer] -> Program -> [Integer]
+runIntcode input program = processState (Just tape) cpu
+  where
+    tape = M.fromList $ zip [0 ..] program
+    cpu = CPU 0 0 (Just input) []

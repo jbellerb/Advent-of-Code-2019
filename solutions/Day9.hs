@@ -10,7 +10,7 @@ import Text.Megaparsec.Char.Lexer
 
 main :: IO ()
 main = do
-  contents <- getDayInput 5
+  contents <- getDayInput 9
   putStr $ unlines $ map show $ part1 contents
   putStr $ unlines $ map show $ part2 contents
 
@@ -21,4 +21,4 @@ part1 :: String -> [Integer]
 part1 = runIntcode [1] . parseInput pIntcode
 
 part2 :: String -> [Integer]
-part2 = runIntcode [5] . parseInput pIntcode
+part2 = runIntcode [2] . parseInput pIntcode

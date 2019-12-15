@@ -3,7 +3,6 @@ import AoC19.Intcode
 
 import Data.Function
 import Data.List
-import qualified Data.Sequence as S
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer
@@ -17,28 +16,31 @@ main = do
   print $ part1 contents
   print $ part2 contents
 
-pIntcode :: Parser [Int]
+pIntcode :: Parser [Integer]
 pIntcode = sepBy (signed space decimal) $ char ','
 
-evaluateAmplifiers :: Tape -> [Int] -> Int
-evaluateAmplifiers tape phases =
+evaluateAmplifiers :: Program -> [Integer] -> Integer
+evaluateAmplifiers program phases =
   head $
     foldl (&) [0] [amplify x | x <- phases]
   where
-    amplify phase input = runIntcode (Just tape) (makeCPU (phase : input))
+    amplify phase input = runIntcode (phase : input) program
 
-loopedAmplifiers :: Tape -> [Int] -> Int
-loopedAmplifiers tape phases = last loop
+loopedAmplifiers :: Program -> [Integer] -> Integer
+loopedAmplifiers program phases = last loop
   where
     loop = foldl (&) (0 : loop) [amplify x | x <- phases]
-    amplify phase input = runIntcode (Just tape) (makeCPU (phase : input))
+    amplify phase input = runIntcode (phase : input) program
 
-part1 :: String -> Int
-part1 input = maximum $ map (evaluateAmplifiers tape) $ permutations [0 .. 4]
+part1 :: String -> Integer
+part1 input =
+  maximum $ map (evaluateAmplifiers program) $
+    permutations
+      [0 .. 4]
   where
-    tape = S.fromList $ parseInput pIntcode input
+    program = parseInput pIntcode input
 
-part2 :: String -> Int
-part2 input = maximum $ map (loopedAmplifiers tape) $ permutations [5 .. 9]
+part2 :: String -> Integer
+part2 input = maximum $ map (loopedAmplifiers program) $ permutations [5 .. 9]
   where
-    tape = S.fromList $ parseInput pIntcode input
+    program = parseInput pIntcode input
