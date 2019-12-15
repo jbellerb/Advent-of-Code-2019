@@ -23,6 +23,15 @@ library
   hs-source-dirs:    src
   default-language:  Haskell2010
 
+executable intcode
+  main-is:           Intcode.hs
+  build-depends:
+    base >=4.12 && <4.13,
+    AdventOfCode2019,
+    megaparsec
+  hs-source-dirs:    .
+  default-language:  Haskell2010
+
 executable day1
   main-is:           Day1.hs
   build-depends:

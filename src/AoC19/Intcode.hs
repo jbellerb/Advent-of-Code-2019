@@ -13,8 +13,8 @@ import Data.Maybe
 
 data CPU
   = CPU
-      { _pc :: Int,
-        _relBase :: Int,
+      { _pc :: Integer,
+        _relBase :: Integer,
         _inputs :: Maybe [Integer],
         _outputs :: [Integer]
       }
@@ -46,7 +46,7 @@ data Parameter
       }
   deriving (Show)
 
-type Tape = Map Int Integer
+type Tape = Map Integer Integer
 
 type Program = [Integer]
 
@@ -58,15 +58,14 @@ advanceQueue (Just (x : xs)) = (x, Just xs)
 advanceQueue _ = error "End of input stream."
 
 resolveParameter :: Parameter -> Tape -> CPU -> Integer
-resolveParameter (Parameter Pos a) tape _ =
-  fromMaybe 0 $ M.lookup (fromInteger a) tape
+resolveParameter (Parameter Pos a) tape _ = fromMaybe 0 $ M.lookup a tape
 resolveParameter (Parameter Imm a) _ _ = a
 resolveParameter (Parameter Rel a) tape cpu =
-  fromMaybe 0 $ M.lookup (fromInteger a + (cpu ^. relBase)) tape
+  fromMaybe 0 $ M.lookup (a + (cpu ^. relBase)) tape
 
-resolveTarget :: Parameter -> CPU -> Int
-resolveTarget (Parameter Rel a) cpu = fromInteger a + (cpu ^. relBase)
-resolveTarget (Parameter _ a) _ = fromInteger a
+resolveTarget :: Parameter -> CPU -> Integer
+resolveTarget (Parameter Rel a) cpu = a + (cpu ^. relBase)
+resolveTarget (Parameter _ a) _ = a
 
 nextInstruction :: Tape -> CPU -> Instruction
 nextInstruction tape cpu = case opcode of
@@ -113,10 +112,10 @@ doInstruction tape instruction cpu = case instruction of
       (input, remaining) = advanceQueue $ cpu ^. inputs
   Out [a] -> (Just tape, cpu & ((pc +~ 2) . (outputs %~ (++ [resolve a]))))
   JT (a : [b])
-    | resolve a /= 0 -> (Just tape, cpu & pc .~ fromInteger (resolve b))
+    | resolve a /= 0 -> (Just tape, cpu & pc .~ resolve b)
     | otherwise -> (Just tape, cpu & pc +~ 3)
   JF (a : [b])
-    | resolve a == 0 -> (Just tape, cpu & pc .~ fromInteger (resolve b))
+    | resolve a == 0 -> (Just tape, cpu & pc .~ resolve b)
     | otherwise -> (Just tape, cpu & pc +~ 3)
   CLT (a : b : [c])
     | resolve a < resolve b ->
@@ -128,8 +127,7 @@ doInstruction tape instruction cpu = case instruction of
       (Just $ M.insert (resolveWrite c) 1 tape, cpu & pc +~ 4)
     | otherwise ->
       (Just $ M.insert (resolveWrite c) 0 tape, cpu & pc +~ 4)
-  REL [a] ->
-    (Just tape, cpu & ((pc +~ 2) . (relBase +~ fromInteger (resolve a))))
+  REL [a] -> (Just tape, cpu & ((pc +~ 2) . (relBase +~ resolve a)))
   _ -> error "This should never happen. (Invalid parsing of instruction.)"
   where
     resolve x = resolveParameter x tape cpu
