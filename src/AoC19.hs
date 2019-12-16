@@ -37,15 +37,18 @@ window :: [a] -> [(a, a)]
 window (x : y : xs) = (x, y) : window (y : xs)
 window _ = []
 
-minimumBy :: (Foldable t, Ord b) => (a -> b) -> t a -> a
-minimumBy f = foldl1 cmp
+zipF :: (a -> b) -> [a] -> [(a, b)]
+zipF f a = zip a $ map f a
+
+minimumOn :: (Foldable t, Ord b) => (a -> b) -> t a -> a
+minimumOn f = foldl1 cmp
   where
     cmp x y
       | f x <= f y = x
       | otherwise = y
 
-maximumBy :: (Foldable t, Ord b) => (a -> b) -> t a -> a
-maximumBy f = foldl1 cmp
+maximumOn :: (Foldable t, Ord b) => (a -> b) -> t a -> a
+maximumOn f = foldl1 cmp
   where
     cmp x y
       | f x >= f y = x

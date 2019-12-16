@@ -11,8 +11,8 @@ import Text.Megaparsec.Char.Lexer
 main :: IO ()
 main = do
   contents <- getDayInput 5
-  putStr $ unlines $ map show $ part1 contents
-  putStr $ unlines $ map show $ part2 contents
+  print $ last $ part1 contents
+  print $ last $ part2 contents
 
 pIntcode :: Parser [Integer]
 pIntcode = sepBy (signed space decimal) $ char ','

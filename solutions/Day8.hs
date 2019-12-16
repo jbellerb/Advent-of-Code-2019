@@ -34,7 +34,7 @@ part1 :: String -> Int
 part1 = smallest . map (check . occurances . concat) . parseInput (pImage 25 6)
   where
     check frequency = (frequency M.! 0, frequency M.! 1 * frequency M.! 2)
-    smallest = snd . minimumBy fst
+    smallest = snd . minimumOn fst
 
 mergeLayers :: [Layer] -> Layer
 mergeLayers = foldl1 merge
