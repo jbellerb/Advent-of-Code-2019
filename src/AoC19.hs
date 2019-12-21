@@ -3,6 +3,7 @@ module AoC19
   )
 where
 
+import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Void
@@ -53,3 +54,16 @@ maximumOn f = foldl1 cmp
     cmp x y
       | f x >= f y = x
       | otherwise = y
+
+findCycle :: (Eq a) => [a] -> Maybe (Int, Int)
+findCycle [] = Nothing
+findCycle vals@(x0 : xs) = do
+  lambda <- repetitionLength x0 xs 1 1
+  mu <- findIndex (uncurry (==)) $ zip vals $ drop lambda vals
+  return (lambda, mu)
+  where
+    repetitionLength _ [] _ _ = Nothing
+    repetitionLength t (h : hs) p l
+      | t == h = Just l
+      | p == l = repetitionLength h hs (p * 2) 1
+      | otherwise = repetitionLength t hs p (l + 1)
