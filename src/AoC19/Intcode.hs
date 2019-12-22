@@ -3,6 +3,7 @@
 module AoC19.Intcode
   ( runIntcode,
     runIntcode',
+    interactIntcode,
     Program,
     CPU,
   )
@@ -18,7 +19,8 @@ data CPU
       { pc :: Integer,
         relBase :: Integer,
         tape :: Tape,
-        inputs :: [Integer]
+        inputs :: [Integer],
+        writeBuffer :: [Integer]
       }
   deriving (Show)
 
@@ -52,6 +54,8 @@ type Tape = Map Integer Integer
 
 type Program = [Integer]
 
+type State a = (Integer, a)
+
 resolveRead :: CPU -> Parameter -> Integer
 resolveRead CPU {..} (Parameter Pos a) = fromMaybe 0 $ M.lookup a tape
 resolveRead _        (Parameter Imm a) = a
@@ -84,66 +88,85 @@ nextInstruction CPU {..} = case opcode of
       2 -> Rel
       _ -> error "Invalid parameter mode."
 
-stepComputer :: CPU -> Maybe (CPU, Maybe Integer)
+stepComputer :: CPU -> Either [Integer] (CPU, Maybe [Integer])
 stepComputer cpu@CPU {..} = case nextInstruction cpu of
-  Halt -> Nothing
+  Halt -> Left writeBuffer
   Add a b c ->
-    Just
+    Right
       ( CPU
           (pc + 4)
           relBase
           (M.insert (resolveW c) (on (+) resolve a b) tape)
-          inputs,
+          inputs
+          writeBuffer,
         Nothing
       )
   Mul a b c ->
-    Just
+    Right
       ( CPU
           (pc + 4)
           relBase
           (M.insert (resolveW c) (on (*) resolve a b) tape)
-          inputs,
+          inputs
+          writeBuffer,
         Nothing
       )
   In a ->
-    Just
+    Right
       ( CPU
           (pc + 2)
           relBase
           (M.insert (resolveW a) (head inputs) tape)
-          (tail inputs),
-        Nothing
+          (tail inputs)
+          [],
+        Just writeBuffer
       )
-  Out a -> Just (CPU (pc + 2) relBase tape inputs, Just (resolve a))
+  Out a ->
+    Right
+      (CPU (pc + 2) relBase tape inputs (writeBuffer ++ [resolve a]), Nothing)
   JT a b ->
-    Just
-      ( CPU (if resolve a /= 0 then resolve b else pc + 3) relBase tape inputs,
+    Right
+      ( CPU
+          (if resolve a /= 0 then resolve b else pc + 3)
+          relBase
+          tape
+          inputs
+          writeBuffer,
         Nothing
       )
   JF a b ->
-    Just
-      ( CPU (if resolve a == 0 then resolve b else pc + 3) relBase tape inputs,
+    Right
+      ( CPU
+          (if resolve a == 0 then resolve b else pc + 3)
+          relBase
+          tape
+          inputs
+          writeBuffer,
         Nothing
       )
   CLT a b c ->
-    Just
+    Right
       ( CPU
           (pc + 4)
           relBase
           (M.insert (resolveW c) (if on (<) resolve a b then 1 else 0) tape)
-          inputs,
+          inputs
+          writeBuffer,
         Nothing
       )
   CEQ a b c ->
-    Just
+    Right
       ( CPU
           (pc + 4)
           relBase
           (M.insert (resolveW c) (if on (==) resolve a b then 1 else 0) tape)
-          inputs,
+          inputs
+          writeBuffer,
         Nothing
       )
-  REL a -> Just (CPU (pc + 2) (relBase + resolve a) tape inputs, Nothing)
+  REL a ->
+    Right
+      (CPU (pc + 2) (relBase + resolve a) tape inputs writeBuffer, Nothing)
   where
     resolve = resolveRead cpu
     resolveW = resolveWrite cpu
@@ -152,22 +175,34 @@ runIntcode :: [Integer] -> Program -> [Integer]
 runIntcode input program = stepUntilHalt $ stepComputer initial
   where
     tape = M.fromList $ zip [0 ..] program
-    initial = CPU 0 0 tape input
-    stepUntilHalt Nothing = []
-    stepUntilHalt (Just (cpu, Nothing)) = stepUntilHalt $ stepComputer cpu
-    stepUntilHalt (Just (cpu, Just output)) =
-      output : stepUntilHalt (stepComputer cpu)
+    initial = CPU 0 0 tape input []
+    stepUntilHalt (Left buffer) = buffer
+    stepUntilHalt (Right (cpu, Nothing)) = stepUntilHalt $ stepComputer cpu
+    stepUntilHalt (Right (cpu, Just output)) =
+      output ++ stepUntilHalt (stepComputer cpu)
 
 runIntcode' :: [Integer] -> Program -> [([Integer], CPU)]
 runIntcode' input program = stepUntilHalt [] $ stepComputer initial
   where
     tape = M.fromList $ zip [0 ..] program
-    initial = CPU 0 0 tape input
-    stepUntilHalt :: [Integer] -> Maybe (CPU, Maybe Integer) -> [([Integer], CPU)]
-    stepUntilHalt _ Nothing = []
-    stepUntilHalt outputs (Just (cpu, Nothing)) =
+    initial = CPU 0 0 tape input []
+    stepUntilHalt _ (Left buffer) = [(buffer, CPU 0 0 M.empty [] [])]
+    stepUntilHalt outputs (Right (cpu, Nothing)) =
       (outputs, cpu) : stepUntilHalt outputs (stepComputer cpu)
-    stepUntilHalt outputs (Just (cpu, Just output)) =
+    stepUntilHalt outputs (Right (cpu, Just output)) =
       (outputs', cpu) : stepUntilHalt outputs' (stepComputer cpu)
       where
-        outputs' = outputs ++ [output]
+        outputs' = outputs ++ output
+
+interactIntcode ::
+  (State a -> [Integer] -> State a) -> State a -> Program -> [Integer]
+interactIntcode f state program = last output
+  where
+    tape = M.fromList $ zip [0 ..] program
+    initial = CPU 0 0 tape input []
+    output = stepUntilHalt $ stepComputer initial
+    input = map fst $ tail $ scanl f state output
+    stepUntilHalt (Left buffer) = [buffer]
+    stepUntilHalt (Right (cpu, Nothing)) = stepUntilHalt $ stepComputer cpu
+    stepUntilHalt (Right (cpu, Just buffer)) =
+      buffer : stepUntilHalt (stepComputer cpu)
