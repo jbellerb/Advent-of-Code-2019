@@ -6,6 +6,7 @@ where
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Ratio
 import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Error (errorBundlePretty)
@@ -67,3 +68,13 @@ findCycle vals@(x0 : xs) = do
       | t == h = Just l
       | p == l = repetitionLength h hs (p * 2) 1
       | otherwise = repetitionLength t hs p (l + 1)
+
+binarySearch :: (Ord a) => [a] -> a -> Int -> Int -> Int
+binarySearch xs x l u
+  | l > u = error "Search failed."
+  | u - l <= 1 = l
+  | xs !! m < x = binarySearch xs x (m + 1) u
+  | xs !! m > x = binarySearch xs x l (m - 1)
+  | otherwise = m
+  where
+    m = floor $ (l + u) % 2
