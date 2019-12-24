@@ -195,13 +195,19 @@ runIntcode' input program = stepUntilHalt [] $ stepComputer initial
         outputs' = outputs ++ output
 
 interactIntcode ::
-  (State a -> [Integer] -> State a) -> State a -> Program -> [Integer]
-interactIntcode f state program = last output
+  (State a -> [Integer] -> State a) ->
+  State a ->
+  Bool ->
+  Program ->
+  [([Integer], State a)]
+interactIntcode f state eager program = zip output input
   where
     tape = M.fromList $ zip [0 ..] program
-    initial = CPU 0 0 tape input []
+    initial = CPU 0 0 tape (map fst input) []
     output = stepUntilHalt $ stepComputer initial
-    input = map fst $ tail $ scanl f state output
+    input = if eager then
+      scanl f state $ tail output else
+      tail $ scanl f state output
     stepUntilHalt (Left buffer) = [buffer]
     stepUntilHalt (Right (cpu, Nothing)) = stepUntilHalt $ stepComputer cpu
     stepUntilHalt (Right (cpu, Just buffer)) =

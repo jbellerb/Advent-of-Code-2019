@@ -91,4 +91,4 @@ part2 input = score $ processDrawBuffer newScreen game
   where
     freePlay = 2 : tail program
     program = parseInput pIntcode input
-    game = interactIntcode playGame (0, newScreen) freePlay
+    game = fst $ last $ interactIntcode playGame (0, newScreen) False freePlay
